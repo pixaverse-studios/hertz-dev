@@ -168,5 +168,19 @@ async def websocket_endpoint(websocket: WebSocket):
 audio_processor = AudioProcessor(model=model, prompt_path=args.prompt_path)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-    print("Server started")
+    import ssl
+    
+    # Create SSL context
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # Generate certificate files using:
+    # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+    ssl_context.load_cert_chain('cert.pem', keyfile='key.pem')
+    
+    # Run with SSL
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        ssl_keyfile="key.pem",
+        ssl_certfile="cert.pem"
+    )
