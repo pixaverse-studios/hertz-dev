@@ -24,7 +24,12 @@ argparse = argparse.ArgumentParser()
 argparse.add_argument('--prompt_path', type=str, default='./prompts/bob_mono.wav', help="""
                       We highly recommend making your own prompt based on a conversation between you and another person.
                       bob_mono.wav seems to work better for two-channel than bob_stereo.wav.
+                      
                       """)
+argparse.add_argument('--ssl', type=bool, default=False, help="""
+                      Run with SSL
+                      """) 
+                      
 args = argparse.parse_args()
 
 
@@ -168,19 +173,22 @@ async def websocket_endpoint(websocket: WebSocket):
 audio_processor = AudioProcessor(model=model, prompt_path=args.prompt_path)
 
 if __name__ == "__main__":
-    import ssl
+    if args.ssl:
+        import ssl
+        # Create SSL context
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        # Generate certificate files using:
+        # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+        ssl_context.load_cert_chain('cert.pem', keyfile='key.pem')
+        uvicorn.run(
+            app,
+            host="0.0.0.0",
+            port=8000,
+            ssl_keyfile="key.pem",
+            ssl_certfile="cert.pem"
+        )
+    else:
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+        
     
-    # Create SSL context
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    # Generate certificate files using:
-    # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
-    ssl_context.load_cert_chain('cert.pem', keyfile='key.pem')
-    
-    # Run with SSL
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        ssl_keyfile="key.pem",
-        ssl_certfile="cert.pem"
-    )
+       
